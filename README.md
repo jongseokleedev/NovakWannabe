@@ -39,6 +39,6 @@
 
 install is necessary only for first try
 
-- `pip install selenium`
+    - `pip install selenium`
 
-- `pip install schedule`
+    - `pip install schedule`
