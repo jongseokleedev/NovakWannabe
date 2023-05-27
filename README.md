@@ -1,4 +1,4 @@
-# The NovakWannabe: Court Reservation Helper
+# The NovakWannabe: Hobby Helper
 
 ### Environment
 
