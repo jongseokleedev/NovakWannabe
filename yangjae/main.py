@@ -2,9 +2,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import schedule
+import os
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
 from selenium.webdriver.common.by import By
+import telegram
+from dotenv import load_dotenv
+import asyncio
 
 #@TODO
 #1.SMS 전송
@@ -18,6 +22,13 @@ def is_element_exist(class_name):
         return True
     except NoSuchElementException:
         return False
+
+async def send_message(message):
+    load_dotenv()
+    telegram_token = os.environ.get('TELEGRAM_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    bot=telegram.Bot(token=telegram_token)
+    await bot.sendMessage(chat_id, text=message, parse_mode="Markdown")
 
 
 def court_reservation(url_list):
@@ -68,7 +79,6 @@ def court_monthly_reservation():
             time.sleep(0.5)
 
             # 시간 list 추출
-            is_time_available = False
             time_section_list = driver.find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
             time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
                                     time_section_list)  # [['8:00'], ['9:00']]
@@ -83,10 +93,10 @@ def court_monthly_reservation():
                 # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
                 if time_element_color == "rgba(224, 254, 211, 1)":
                     time_element.click()
-                    is_time_available = True
-                    print(current_month, "월 ", day_num_text, "일 ", time_index, "시 is available !!!!!")
-
-                    #@TODO SMS 알림 로직 
+                    message="{}월 {}일 {}시 예약 가능합니다.".format(current_month, day_num_text, time_index)
+                    print(message)
+                    asyncio.run(send_message(message))
+                    print("messgae sent done")
 
         day_count += 1
 
@@ -101,6 +111,14 @@ def get_driver(driver_path):
 
 
 def main(schedule_cycle, url_list):
+    # load_dotenv()
+    # telegram_token = os.environ.get('TELEGRAM_TOKEN')
+    # bot=telegram.Bot(token=telegram_token)
+    # updates=await bot.getUpdates()
+    # for update in updates:
+    #     print(update.message)
+
+
     # job 수행 주기 및 수행할 함수 등록
     schedule.every(schedule_cycle).seconds.do(lambda: court_reservation(url_list))
 
@@ -120,7 +138,7 @@ schedule_cycle = 5
 url_list=[
     # "https://booking.naver.com/booking/10/bizes/210031/items/4394828",  # 실내 A 코트
     # "https://booking.naver.com/booking/10/bizes/210031/items/4394829",  # 실내 B 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394830",  # 실내 C 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394830",  # 실내 C 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394832",  # 야외 1번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394834",  # 야외 2번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394835",  # 야외 3번 코트
