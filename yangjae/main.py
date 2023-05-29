@@ -9,11 +9,12 @@ from selenium.webdriver.common.by import By
 import telegram
 from dotenv import load_dotenv
 import asyncio
+import re
 
 #@TODO
-#1.SMS 전송
-#2.오전,오후 시간 구분해서 로깅
-#3.전체페이지에서 하나씩 클릭해서 들어가기 (URL 변경 회피)
+#1.SMS 전송 (Done)
+#2.오전,오후 시간 구분해서 로깅 (Done)
+#3.전체페이지에서 하나씩 클릭해서 들어가기 (URL 변경 회피) (TODO)
 
 
 def is_element_exist(class_name):
@@ -24,11 +25,16 @@ def is_element_exist(class_name):
         return False
 
 async def send_message(message):
+    if message in sent_messages:
+        print("Message already sent before: " + message)
+        return
     load_dotenv()
     telegram_token = os.environ.get('TELEGRAM_TOKEN')
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
     bot=telegram.Bot(token=telegram_token)
     await bot.sendMessage(chat_id, text=message, parse_mode="Markdown")
+    sent_messages.add(message)
+    print("messgae sent done")
 
 
 def court_reservation(url_list):
@@ -41,7 +47,7 @@ def court_reservation(url_list):
         print("current url is " + url)
         driver.get(url)
         # 웹 로딩될 때까지 sleep
-        time.sleep(4)
+        time.sleep(1)
 
         # calendar-date를 찾을 수 있는 경우에만 실행
         has_calendar = is_element_exist("calendar-date")
@@ -54,7 +60,10 @@ def court_reservation(url_list):
 
 def court_monthly_reservation():
     day_count = 0
-    current_month = driver.find_element(By.CLASS_NAME,"service_info_tit").text[0]
+    title_text = driver.find_element(By.CLASS_NAME,"service_info_tit").text
+    
+    current_month = title_text[0]
+    court_name = title_text[3:]
     month_element = driver.find_element(By.CLASS_NAME,"calendar-title")
     month_next_element = driver.find_element(By.CLASS_NAME,"calendar-btn-next-mon")
     current_selected_month=month_element.find_element(By.XPATH, '//span[@ng-bind="$ctrl.baseDate.get(\'month\') + 1"]').text
@@ -77,26 +86,59 @@ def court_monthly_reservation():
             day.click()
             # 일자 클릭 후 time list 로딩까지 sleep
             time.sleep(0.5)
-
-            # 시간 list 추출
-            time_section_list = driver.find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
-            time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
-                                    time_section_list)  # [['8:00'], ['9:00']]
-                                                
-            flatten_time_element_list = [y for x in list(time_element_list) for y in x]  # ['8:00', '9:00']
-            # 시간별 로직 실행
-            for time_element in flatten_time_element_list:
+            # 오전 시간 list 추출
+            am_time_section_list = driver.find_element(By.CLASS_NAME,'am').find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
+            am_time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
+                                    am_time_section_list)  # [['8:00'], ['9:00']]
+            am_flatten_time_element_list = [y for x in list(am_time_element_list) for y in x]  # ['8:00', '9:00']
+            # 오전 시간별 로직 실행
+            for time_element in am_flatten_time_element_list:
                 time_element_link=time_element.find_element(By.TAG_NAME,'a')
                 time_element_color = time_element_link.find_element(By.TAG_NAME,'span').value_of_css_property(
                     'background-color')
                 time_index = time_element_link.get_attribute('data-time-index')
                 # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
                 if time_element_color == "rgba(224, 254, 211, 1)":
+                    # 요일 정보 추출
+                    sub_title_text = driver.find_element(By.CLASS_NAME,"service_info_dsc").text                                                
+                    match = re.search(r'\((.*?)\)', sub_title_text)
+                    if match:
+                        day_info = match.group(1)
+                    else:
+                        day_info = "ERR: No match"
                     time_element.click()
-                    message="{}월 {}일 {}시 예약 가능합니다.".format(current_month, day_num_text, time_index)
+                    message="{} {}일 오전 {}시 {}요일 예약 가능합니다.".format(court_name, day_num_text, time_index, day_info)
                     print(message)
                     asyncio.run(send_message(message))
-                    print("messgae sent done")
+
+
+
+            # 오후 시간 list 추출
+            pm_time_section_list = driver.find_element(By.CLASS_NAME,'pm').find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
+            pm_time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
+                                    pm_time_section_list)  # [['8:00'], ['9:00']]
+                                                
+            pm_flatten_time_element_list = [y for x in list(pm_time_element_list) for y in x]  # ['8:00', '9:00']
+            # 오후 시간별 로직 실행
+            for time_element in pm_flatten_time_element_list:
+                time_element_link=time_element.find_element(By.TAG_NAME,'a')
+                time_element_color = time_element_link.find_element(By.TAG_NAME,'span').value_of_css_property(
+                    'background-color')
+                time_index = time_element_link.get_attribute('data-time-index')
+                # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
+                if time_element_color == "rgba(224, 254, 211, 1)":
+                    sub_title_text = driver.find_element(By.CLASS_NAME,"service_info_dsc").text                                                
+                    # 요일 정보 추출
+                    match = re.search(r'\((.*?)\)', sub_title_text)
+                    if match:
+                        day_info = match.group(1)
+                    else:
+                        day_info = "ERR: No match"
+                    time_element.click()
+                    
+                    message="{} {}일 오후 {}시 {}요일 예약 가능합니다.".format(court_name, day_num_text, time_index, day_info)
+                    print(message)
+                    asyncio.run(send_message(message))
 
         day_count += 1
 
@@ -117,8 +159,6 @@ def main(schedule_cycle, url_list):
     # updates=await bot.getUpdates()
     # for update in updates:
     #     print(update.message)
-
-
     # job 수행 주기 및 수행할 함수 등록
     schedule.every(schedule_cycle).seconds.do(lambda: court_reservation(url_list))
 
@@ -129,6 +169,7 @@ def main(schedule_cycle, url_list):
         time.sleep(1)
 
 # 크롬 제어를 위한 웹드라이버 설정 (웹드라이버 설치 경로)
+sent_messages = set()
 driver_path = "/opt/homebrew/bin/chromedriver"
 driver = get_driver(driver_path)
 
