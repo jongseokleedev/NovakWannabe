@@ -1,4 +1,4 @@
-# The NovakWannabe: Hobby Helper
+# NovakWannabe: Hobby Helper
 
 ### Environment
 
@@ -35,10 +35,15 @@
 
      `schedule.every(10).seconds.do(main)`
 
-5. execute `python3 main.py` in `yangjae` path
+5. .env setting
 
-install is necessary only for first try
+   - set TELEGRAM_CHAT_ID
+   - set TELEGRAM_TOKEN
 
-    - `pip install selenium`
+6. execute `python3 main.py` in `yangjae` path
 
-    - `pip install schedule`
+   - install is necessary only for first try
+
+     `pip install selenium`
+
+     `pip install schedule`
