@@ -145,7 +145,7 @@ def court_monthly_reservation():
                     'background-color')
                 time_index = time_element_link.get_attribute('data-time-index')
                 # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
-                if time_element_color == "rgba(224, 254, 211, 1)":
+                if time_element_color == "rgba(224, 254, 211, 1)" and (time_index =="8" or time_index == "9" or time_index =="6" or time_index =="7"):
                     sub_title_text = driver.find_element(By.CLASS_NAME,"service_info_dsc").text                                                
                     # 요일 정보 추출
                     match = re.search(r'\((.*?)\)', sub_title_text)
@@ -196,12 +196,12 @@ driver = get_driver(driver_path)
 schedule_cycle = 5
 #양재
 url_list=[
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394832",  # 야외 1번 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394834",  # 야외 2번 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394835",  # 야외 3번 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394836",  # 야외 4번 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394837",  # 야외 5번 코트
-    "https://booking.naver.com/booking/10/bizes/210031/items/4394839",  # 야외 6번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394832",  # 야외 1번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394834",  # 야외 2번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394835",  # 야외 3번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394836",  # 야외 4번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394837",  # 야외 5번 코트
+    # "https://booking.naver.com/booking/10/bizes/210031/items/4394839",  # 야외 6번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394840",  # 야외 7번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394841",   # 야외 8번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394828",  # 실내 A 코트
