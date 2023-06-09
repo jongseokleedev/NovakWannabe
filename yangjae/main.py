@@ -43,37 +43,41 @@ def court_reservation(url_list):
 
     # url 접속
     for i, url in enumerate(url_list):
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@ Court No. ", i+1, " Check Start @@@@@@@@@@@@@@@@@@@@@@@@@@2")
-        print("current url is " + url)
-        driver.get(url)
-        # 웹 로딩될 때까지 sleep
-        time.sleep(1)
+        try:
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@ Court No. ", i+1, " Check Start @@@@@@@@@@@@@@@@@@@@@@@@@@2")
+            print("current url is " + url)
+            driver.get(url)
+            # 웹 로딩될 때까지 sleep
+            time.sleep(4)
 
-        # calendar-date를 찾을 수 있는 경우에만 실행
-        has_calendar = is_element_exist("calendar-date")
-        if has_calendar:
-            time_available=False
-            time_section_list = driver.find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
-            time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
-                                    time_section_list)  # [['8:00'], ['9:00']]
-            flatten_time_element_list = [y for x in list(time_element_list) for y in x]  # ['8:00', '9:00']
-            # 오전 시간별 로직 실행
-            for time_element in flatten_time_element_list:
-                time_element_link=time_element.find_element(By.TAG_NAME,'a')
-                time_element_color = time_element_link.find_element(By.TAG_NAME,'span').value_of_css_property(
-                    'background-color')
-                # time_index = time_element_link.get_attribute('data-time-index')
-                # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
-                if time_element_color == "rgba(224, 254, 211, 1)":
-                    time_available = True
-            if time_available == True:
-                court_monthly_reservation()
+            # calendar-date를 찾을 수 있는 경우에만 실행
+            has_calendar = is_element_exist("calendar-date")
+            if has_calendar:
+                time_available=False
+                time_section_list = driver.find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
+                time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
+                                        time_section_list)  # [['8:00'], ['9:00']]
+                flatten_time_element_list = [y for x in list(time_element_list) for y in x]  # ['8:00', '9:00']
+                # 오전 시간별 로직 실행
+                for time_element in flatten_time_element_list:
+                    time_element_link=time_element.find_element(By.TAG_NAME,'a')
+                    time_element_color = time_element_link.find_element(By.TAG_NAME,'span').value_of_css_property(
+                        'background-color')
+                    # time_index = time_element_link.get_attribute('data-time-index')
+                    # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
+                    if time_element_color == "rgba(224, 254, 211, 1)":
+                        time_available = True
+                if time_available == True:
+                    court_monthly_reservation()
+                else:
+                    #예약 가능한 일자 하나도 없는 경우
+                    continue;
             else:
-                #예약 가능한 일자 하나도 없는 경우
-                continue;
-        else:
-            # calendar가 없으면
-            print("ERROR: no calendar")
+                # calendar가 없으면
+                print("ERROR: no calendar")
+        except Exception as e:
+            print(e)
+            continue
 
 
 def court_monthly_reservation():
@@ -89,7 +93,7 @@ def court_monthly_reservation():
     # 현재 체크하고있는 달과 캘린더의 달이 다른 경우(전체 달력이 표현되지 않고 일부만 표현되는 경우), 다음을 클릭하여 현재 달로 넘어간다.
     if(current_selected_month!=current_month):
         month_next_element.click()
-        time.sleep(0.5)
+        time.sleep(1.5)
 
     day_elements = driver.find_elements(By.CLASS_NAME,"calendar-date")
     
@@ -117,7 +121,7 @@ def court_monthly_reservation():
                     'background-color')
                 time_index = time_element_link.get_attribute('data-time-index')
                 # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
-                if time_element_color == "rgba(224, 254, 211, 1)" and (time_index =="8" or time_index == "9" or time_index =="6" or time_index =="7"):
+                if time_element_color == "rgba(224, 254, 211, 1)":
                     # 요일 정보 추출
                     sub_title_text = driver.find_element(By.CLASS_NAME,"service_info_dsc").text                                                
                     match = re.search(r'\((.*?)\)', sub_title_text)
@@ -128,7 +132,9 @@ def court_monthly_reservation():
                     # time_element.click()
                     message="{} {}일 오전 {}시 {}요일 예약 가능합니다.".format(court_name, day_num_text, time_index, day_info)
                     print(message)
-                    asyncio.run(send_message(message))
+                    #메시지 알림을 보낼 시간 조건: 6,7,8,9시 일 경우
+                    if((time_index =="8" or time_index == "9" or time_index =="6" or time_index =="7")):
+                        asyncio.run(send_message(message))
 
 
 
@@ -145,7 +151,7 @@ def court_monthly_reservation():
                     'background-color')
                 time_index = time_element_link.get_attribute('data-time-index')
                 # 시간 색상이 연두색 (rgba = (224, 254, 211, 1))이라면 예약알림 로직 실행
-                if time_element_color == "rgba(224, 254, 211, 1)" and (time_index =="8" or time_index == "9" or time_index =="6" or time_index =="7"):
+                if time_element_color == "rgba(224, 254, 211, 1)":
                     sub_title_text = driver.find_element(By.CLASS_NAME,"service_info_dsc").text                                                
                     # 요일 정보 추출
                     match = re.search(r'\((.*?)\)', sub_title_text)
@@ -157,7 +163,9 @@ def court_monthly_reservation():
                     
                     message="{} {}일 오후 {}시 {}요일 예약 가능합니다.".format(court_name, day_num_text, time_index, day_info)
                     print(message)
-                    asyncio.run(send_message(message))
+                    #메시지 알림을 보낼 시간 조건: 6,7,8,9시 일 경우
+                    if((time_index =="8" or time_index == "9" or time_index =="6" or time_index =="7")):
+                        asyncio.run(send_message(message))
 
         day_count += 1
 
@@ -196,17 +204,24 @@ driver = get_driver(driver_path)
 schedule_cycle = 5
 #양재
 url_list=[
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394832",  # 야외 1번 코트
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394834",  # 야외 2번 코트
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394835",  # 야외 3번 코트
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394836",  # 야외 4번 코트
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394837",  # 야외 5번 코트
-    # "https://booking.naver.com/booking/10/bizes/210031/items/4394839",  # 야외 6번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394832",  # 야외 1번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394834",  # 야외 2번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394835",  # 야외 3번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394836",  # 야외 4번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394837",  # 야외 5번 코트
+    "https://booking.naver.com/booking/10/bizes/210031/items/4394839",  # 야외 6번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394840",  # 야외 7번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394841",   # 야외 8번 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394828",  # 실내 A 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394829",  # 실내 B 코트
     "https://booking.naver.com/booking/10/bizes/210031/items/4394830",  # 실내 C 코트
+
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404094", # 내곡 1번
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404095", # 내곡 2번
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404097", # 내곡 3번
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404098", # 내곡 4번
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404101", # 내곡 5번
+    "https://booking.naver.com/booking/10/bizes/217811/items/4404102", # 내곡 6번
 ]
 
 #내곡
