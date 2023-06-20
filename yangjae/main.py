@@ -48,7 +48,7 @@ def court_reservation(url_list):
             print("current url is " + url)
             driver.get(url)
             # 웹 로딩될 때까지 sleep
-            time.sleep(4)
+            time.sleep(2)
 
             # calendar-date를 찾을 수 있는 경우에만 실행
             has_calendar = is_element_exist("calendar-date")
@@ -108,7 +108,7 @@ def court_monthly_reservation():
             # 일자 클릭
             day.click()
             # 일자 클릭 후 time list 로딩까지 sleep
-            time.sleep(1)
+            time.sleep(0.5)
             # 오전 시간 list 추출
             am_time_section_list = driver.find_element(By.CLASS_NAME,'am').find_elements(By.CLASS_NAME,'lst_time')  # 오전 / 오후
             am_time_element_list = map(lambda time_section: time_section.find_elements(By.XPATH,".//li"),
